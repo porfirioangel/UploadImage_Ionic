@@ -57,6 +57,27 @@ export class HomePage {
         actionSheet.present();
     }
 
+    private getCorrectNames(fileUri: string) {
+        let correctPath = '';
+        let currentName = '';
+
+        if (this.platform.is('ios')) {
+            // TODO Implementar esto
+        } else if (this.platform.is('android')) {
+            correctPath = fileUri.substr(0,
+                fileUri.lastIndexOf('/') + 1);
+
+            currentName = fileUri.substring(
+                fileUri.lastIndexOf('/') + 1,
+                fileUri.lastIndexOf('?'));
+        }
+
+        return {
+            correctPath: correctPath,
+            currentName: currentName
+        };
+    }
+
     public takePicture(sourceType) {
         // Create options for the Camera Dialog
         var options = {
@@ -74,37 +95,31 @@ export class HomePage {
                 if (this.platform.is('ios')) {
                     return fileUri;
                 } else if (this.platform.is('android')) {
-                    // Modify fileUri format, may not always be necessary
-                    fileUri = 'file://' + fileUri;
+                    let imageData = {
+                        // Modify fileUri format, may not always be necessary
+                        fileUri: 'file://' + fileUri,
+                        device: 'android'
+                    };
 
-                    this.crop.crop(fileUri, {quality: 100})
-                        .then((filePath) => {
-                            console.log('cropped', filePath);
-
-                            let correctPath = filePath.substr(0,
-                                filePath.lastIndexOf('/') + 1);
-
-                            let currentName = filePath.substring(
-                                filePath.lastIndexOf('/') + 1,
-                                filePath.lastIndexOf('?'));
-
-                            console.log('correctPath', correctPath);
-                            console.log('currentName', currentName);
-
-                            this.copyFileToLocalDir(correctPath, currentName,
-                                this.createFileName());
-
-
-                            //
-
-                        })
-                        .catch((error) => {
-                            console.log(error);
-                        });
+                    return imageData;
                 }
             })
-            .then((finalName) => {
-                console.log('Final filename', finalName)
+            .then((imageData) => {
+                console.log('Image data', imageData);
+
+                this.crop.crop(imageData.fileUri, {quality: 100})
+                    .then((filePath) => {
+                        console.log('cropped', filePath);
+
+                        let correctNames = this.getCorrectNames(filePath);
+
+                        this.copyFileToLocalDir(correctNames.correctPath,
+                            correctNames.currentName,
+                            this.createFileName());
+                    })
+                    .catch((error) => {
+                        console.log(error);
+                    });
             });
     }
 
