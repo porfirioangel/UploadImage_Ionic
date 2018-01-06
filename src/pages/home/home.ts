@@ -6,7 +6,8 @@ import {
 import {FileTransfer, FileTransferObject} from "@ionic-native/file-transfer";
 import {Camera} from "@ionic-native/camera";
 import {FilePath} from "@ionic-native/file-path";
-import { File } from '@ionic-native/file';
+import {EntriesCallback, File, Entry} from '@ionic-native/file';
+import {Crop} from "@ionic-native/crop";
 
 declare var cordova: any;
 
@@ -26,7 +27,8 @@ export class HomePage {
                 public actionSheetCtrl: ActionSheetController,
                 public toastCtrl: ToastController,
                 public platform: Platform,
-                public loadingCtrl: LoadingController) {
+                public loadingCtrl: LoadingController,
+                public crop: Crop) {
 
     }
 
@@ -65,31 +67,45 @@ export class HomePage {
         };
 
         // Get the data of an image
-        this.camera.getPicture(options).then((imagePath) => {
-            // Special handling for Android library
-            if (this.platform.is('android') &&
-                sourceType === this.camera.PictureSourceType.PHOTOLIBRARY) {
-                this.filePath.resolveNativePath(imagePath)
-                    .then(filePath => {
-                        let correctPath = filePath.substr(0,
-                            filePath.lastIndexOf('/') + 1);
-                        let currentName = imagePath.substring(
-                            imagePath.lastIndexOf('/') + 1,
-                            imagePath.lastIndexOf('?'));
-                        this.copyFileToLocalDir(correctPath, currentName,
-                            this.createFileName());
-                    });
-            } else {
-                var currentName = imagePath.substr(
-                    imagePath.lastIndexOf('/') + 1);
-                var correctPath = imagePath.substr(0,
-                    imagePath.lastIndexOf('/') + 1);
-                this.copyFileToLocalDir(correctPath, currentName,
-                    this.createFileName());
-            }
-        }, (err) => {
-            this.presentToast('Error while selecting image.');
-        });
+        this.camera.getPicture(options)
+            .then((fileUri) => {
+                // Crop Image, on android this returns something like, '/storage/emulated/0/Android/...'
+                // Only giving an android example as ionic-native camera has built in cropping ability
+                if (this.platform.is('ios')) {
+                    return fileUri;
+                } else if (this.platform.is('android')) {
+                    // Modify fileUri format, may not always be necessary
+                    fileUri = 'file://' + fileUri;
+
+                    this.crop.crop(fileUri, {quality: 100})
+                        .then((filePath) => {
+                            console.log('cropped', filePath);
+
+                            let correctPath = filePath.substr(0,
+                                filePath.lastIndexOf('/') + 1);
+
+                            let currentName = filePath.substring(
+                                filePath.lastIndexOf('/') + 1,
+                                filePath.lastIndexOf('?'));
+
+                            console.log('correctPath', correctPath);
+                            console.log('currentName', currentName);
+
+                            this.copyFileToLocalDir(correctPath, currentName,
+                                this.createFileName());
+
+
+                            //
+
+                        })
+                        .catch((error) => {
+                            console.log(error);
+                        });
+                }
+            })
+            .then((finalName) => {
+                console.log('Final filename', finalName)
+            });
     }
 
     // Create a new name for the image
@@ -101,14 +117,32 @@ export class HomePage {
     }
 
     // Copy the image to a local folder
-    private copyFileToLocalDir(namePath, currentName, newFileName) {
-        this.file.copyFile(namePath, currentName, cordova.file.dataDirectory,
-            newFileName)
-            .then(success => {
-                this.lastImage = newFileName;
-            }, error => {
-                this.presentToast('Error while storing file.');
-            });
+    private copyFileToLocalDir(namePath, currentName, newFileName): Promise<string> {
+        return new Promise<string>((resolve, reject) => {
+            this.file.copyFile(namePath, currentName, cordova.file.dataDirectory,
+                newFileName)
+                .then(success => {
+                    this.lastImage = newFileName;
+                    resolve(newFileName);
+                }, error => {
+                    this.presentToast('Error while storing file.');
+                    reject('Error while storing file.');
+                });
+        });
+    }
+
+    private cropImage(imagePath): Promise<string> {
+        return new Promise<string>((resolve, reject) => {
+            this.crop.crop(imagePath, {quality: 75})
+                .then((newImage) => {
+                    console.log('new image path is: ' + newImage);
+                    resolve(newImage);
+                })
+                .catch((error) => {
+                    console.error('Error cropping image', error);
+                    reject(error);
+                });
+        });
     }
 
     private presentToast(text) {
