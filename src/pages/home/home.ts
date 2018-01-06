@@ -82,6 +82,8 @@ export class HomePage {
     }
 
     public takePicture(sourceType) {
+        console.log('takepicture', sourceType);
+
         // Create options for the Camera Dialog
         var options = {
             quality: 100,
