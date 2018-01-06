@@ -62,7 +62,10 @@ export class HomePage {
         let currentName = '';
 
         if (this.platform.is('ios')) {
-            // TODO Implementar esto
+            currentName = fileUri.substr(fileUri.lastIndexOf('/') + 1);
+
+            correctPath = fileUri.substr(0,
+                fileUri.lastIndexOf('/') + 1);
         } else if (this.platform.is('android')) {
             correctPath = fileUri.substr(0,
                 fileUri.lastIndexOf('/') + 1);
@@ -93,33 +96,33 @@ export class HomePage {
                 // Crop Image, on android this returns something like, '/storage/emulated/0/Android/...'
                 // Only giving an android example as ionic-native camera has built in cropping ability
                 if (this.platform.is('ios')) {
-                    return fileUri;
+                    return {
+                        fileUri: fileUri,
+                        device: 'ios'
+                    };
                 } else if (this.platform.is('android')) {
-                    let imageData = {
+                    return {
                         // Modify fileUri format, may not always be necessary
                         fileUri: 'file://' + fileUri,
                         device: 'android'
                     };
-
-                    return imageData;
                 }
             })
             .then((imageData) => {
                 console.log('Image data', imageData);
+                return this.cropImage(imageData.fileUri);
+            })
+            .then((croppedImageName) => {
+                console.log('cropped', croppedImageName);
 
-                this.crop.crop(imageData.fileUri, {quality: 100})
-                    .then((filePath) => {
-                        console.log('cropped', filePath);
+                let correctNames = this.getCorrectNames(croppedImageName);
 
-                        let correctNames = this.getCorrectNames(filePath);
-
-                        this.copyFileToLocalDir(correctNames.correctPath,
-                            correctNames.currentName,
-                            this.createFileName());
-                    })
-                    .catch((error) => {
-                        console.log(error);
-                    });
+                this.copyFileToLocalDir(correctNames.correctPath,
+                    correctNames.currentName,
+                    this.createFileName());
+            })
+            .catch((error) => {
+                console.log('-- ERROR', error);
             });
     }
 
@@ -150,11 +153,9 @@ export class HomePage {
         return new Promise<string>((resolve, reject) => {
             this.crop.crop(imagePath, {quality: 75})
                 .then((newImage) => {
-                    console.log('new image path is: ' + newImage);
                     resolve(newImage);
                 })
                 .catch((error) => {
-                    console.error('Error cropping image', error);
                     reject(error);
                 });
         });
