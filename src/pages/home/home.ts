@@ -1,12 +1,14 @@
 import {Component} from '@angular/core';
 import {
-    ActionSheetController, Loading, LoadingController, NavController, Platform,
+    ActionSheetController,
+    Loading,
+    LoadingController,
+    Platform,
     ToastController
 } from 'ionic-angular';
 import {FileTransfer, FileTransferObject} from "@ionic-native/file-transfer";
 import {Camera} from "@ionic-native/camera";
-import {FilePath} from "@ionic-native/file-path";
-import {EntriesCallback, File, Entry} from '@ionic-native/file';
+import {File} from '@ionic-native/file';
 import {Crop} from "@ionic-native/crop";
 
 declare var cordova: any;
@@ -19,11 +21,9 @@ export class HomePage {
     lastImage: string = null;
     loading: Loading;
 
-    constructor(public navCtrl: NavController,
-                private camera: Camera,
+    constructor(private camera: Camera,
                 private transfer: FileTransfer,
                 private file: File,
-                private filePath: FilePath,
                 public actionSheetCtrl: ActionSheetController,
                 public toastCtrl: ToastController,
                 public platform: Platform,
