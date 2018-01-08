@@ -177,7 +177,13 @@ export class HomePage {
         if (img === null) {
             return '';
         } else {
-            return cordova.file.dataDirectory + img;
+            let name = (cordova.file.dataDirectory + img);
+
+            if (this.platform.is('ios')) {
+                name = name.replace('file://', '');
+            }
+            
+            return name;
         }
     }
 
@@ -187,6 +193,8 @@ export class HomePage {
 
         // File for Upload
         var targetPath = this.pathForImage(this.lastImage);
+
+        console.log('image to upload', targetPath);
 
         // File name only
         var filename = this.lastImage;
